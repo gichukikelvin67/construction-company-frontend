@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   createProject,
   getProjects,
@@ -295,10 +296,11 @@ export default function ProjectsPage() {
             </div>
           ) : (
             projects.map((project) => (
-              <div
-                key={project._id}
-                className="border border-[var(--border)] p-5 transition hover:border-[var(--architect-green)]"
-              >
+            <Link
+         key={project._id}
+            href={`/dashboard/projects/${project._id}`}
+             className="block border border-[var(--border)] p-5 transition hover:border-[var(--architect-green)]"
+                     >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-base font-semibold text-[var(--foreground)]">
@@ -353,7 +355,7 @@ export default function ProjectsPage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))
           )}
         </div>
