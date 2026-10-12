@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-
+import axios from "axios";
 export interface MaterialStock {
   material: {
     id: string;
@@ -21,6 +21,8 @@ export interface StockMovement {
   type: "receipt" | "issue" | "return" | "adjustment";
   adjustmentDirection?: "increase" | "decrease";
   quantity: number;
+  stockBefore:number;
+  stockAfter:number;
   unitCost?: number;
   referenceNumber?: string;
   notes?: string;
@@ -109,11 +111,11 @@ export const getLowStockMaterials =
     return response.data;
   };
 
+
 export const createStockMovement = async (
   movementData: CreateStockMovementData
 ): Promise<StockMovement> => {
   try {
-    console.log("STOCK MOVEMENT PAYLOAD:",movementData);
     const response = await api.post<{
       success: boolean;
       message: string;
@@ -121,15 +123,21 @@ export const createStockMovement = async (
     }>("/stock-movements", movementData);
 
     return response.data.movement[0];
-  } catch (error: any) {
-    console.error(
-      "STOCK MOVEMENT BACKEND ERROR:",
-      error.response?.data
-    );
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.error("STOCK MOVEMENT BACKEND ERROR:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } else {
+      console.error("STOCK MOVEMENT ERROR:", error);
+    }
 
     throw error;
   }
 };
+
 export interface Material {
   _id: string;
   name: string;
@@ -154,4 +162,44 @@ export const getMaterials = async (): Promise<Material[]> => {
   const response = await api.get<GetMaterialsResponse>("/materials");
 
   return response.data.materials;
+};
+export interface CreateMaterialData {
+  name: string;
+  code?: string;
+  description?: string;
+  unit:
+    | "kg"
+    | "gram"
+    | "ton"
+    | "bag"
+    | "piece"
+    | "bar"
+    | "roll"
+    | "sheet"
+    | "bundle"
+    | "pair"
+    | "set"
+    | "packet"
+    | "box"
+    | "carton"
+    | "drum"
+    | "litre"
+    | "millilitre"
+    | "metre"
+    | "millimetre"
+    | "square_metre"
+    | "cubic_metre";
+  minimumStock: number;
+}
+
+export const createMaterial = async (
+  materialData: CreateMaterialData
+): Promise<Material> => {
+  const response = await api.post<{
+    success: boolean;
+    message: string;
+    material: Material;
+  }>("/materials", materialData);
+
+  return response.data.material;
 };

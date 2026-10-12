@@ -34,6 +34,10 @@ export default function DashboardLayout({
                 href="/dashboard"
                 active
               />
+              <SidebarItem
+  label="Users"
+  href="/dashboard/users"
+/>
 
               <SidebarItem
                 label="Projects"
@@ -59,6 +63,10 @@ export default function DashboardLayout({
                 label="Purchase Orders"
                 href="/dashboard/purchase-orders"
               />
+              <SidebarItem
+              label="Audit Logs"
+               href="/dashboard/audit-logs"
+                    />
 
               <SidebarItem
                 label="Expenses"
@@ -69,6 +77,10 @@ export default function DashboardLayout({
                 label="Invoices"
                 href="/dashboard/invoices"
               />
+              <SidebarItem
+               label="Contact Enquiries"
+               href="/dashboard/enquiries"
+                    />
             </div>
           </nav>
 
