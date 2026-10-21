@@ -471,54 +471,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Construction image without heavy gradients */}
-          <div className="relative min-h-[420px] sm:min-h-[540px]">
-            <div className="absolute inset-0 overflow-hidden rounded-2xl border border-white/30 shadow-2xl">
-              <Image
-                src="/images/WE BUILD IT FOR YOU!.jpg"
-                alt="Building under construction with workers and machinery"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover transition-transform duration-700 hover:scale-105"
-              />
+              
             </div>
-
-            <div className="absolute left-4 top-4 rounded-full bg-[#002147]/80 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white sm:left-6 sm:top-6">
-              Construction Operations
-            </div>
-
-            <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/20 bg-[#002147]/90 p-5 sm:bottom-6 sm:left-6 sm:right-auto sm:w-[370px]">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#f6c700] text-[#002147]">
-                  <Building2 size={24} />
-                </div>
-
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#f6c700]">
-                    Built for the field
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-white">
-                    From construction site to business office.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {["Projects", "Workers", "Materials", "Finance"].map(
-                  (item) => (
-                    <span
-                      key={item}
-                      className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-white"
-                    >
-                      {item}
-                    </span>
-                  )
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Features */}
