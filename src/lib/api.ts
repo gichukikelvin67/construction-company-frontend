@@ -22,11 +22,8 @@ const api = axios.create({
 });
 
 /*
- * This client is used ONLY to refresh the access token.
- *
- * It deliberately does not use the normal api response
- * interceptor, otherwise a failed refresh could trigger
- * another refresh request.
+ * Separate client for refreshing access tokens.
+ * It does not use the main API interceptors.
  */
 const refreshClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -39,11 +36,6 @@ const refreshClient = axios.create({
 let refreshPromise: Promise<string | null> | null = null;
 
 const refreshAccessToken = async (): Promise<string | null> => {
-  /*
-   * If another request is already refreshing the token,
-   * wait for that same request instead of creating another
-   * refresh request.
-   */
   if (refreshPromise) {
     return refreshPromise;
   }
@@ -53,8 +45,13 @@ const refreshAccessToken = async (): Promise<string | null> => {
     .then((response) => {
       const newAccessToken = response.data.accessToken;
 
-      if (!newAccessToken) {
-        throw new Error("Refresh response did not contain an access token");
+      if (
+        typeof newAccessToken !== "string" ||
+        !newAccessToken
+      ) {
+        throw new Error(
+          "Refresh response did not contain an access token"
+        );
       }
 
       setAccessToken(newAccessToken);
@@ -63,9 +60,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
     })
     .catch((error) => {
       console.error("Token refresh failed:", error);
-
       setAccessToken(null);
-
       return null;
     })
     .finally(() => {
@@ -76,10 +71,29 @@ const refreshAccessToken = async (): Promise<string | null> => {
 };
 
 /*
- * Add the access token to every normal API request.
+ * Restore the session before sending a protected request
+ * if the access token is missing from memory.
  */
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
+    const url = config.url ?? "";
+
+    const isAuthenticationRequest =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/refresh") ||
+      url.includes("/auth/google") ||
+      url.includes("/auth/forgot-password") ||
+      url.includes("/auth/reset-password");
+
+    if (isAuthenticationRequest) {
+      return config;
+    }
+
+    if (!accessToken) {
+      await refreshAccessToken();
+    }
+
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -89,8 +103,8 @@ api.interceptors.request.use(
 );
 
 /*
- * If the access token expires, refresh it and retry
- * the original request once.
+ * If a token expires, refresh it and retry the original
+ * request once.
  */
 api.interceptors.response.use(
   (response) => response,
@@ -102,7 +116,11 @@ api.interceptors.response.use(
       error.response?.status !== 401 ||
       !originalRequest ||
       originalRequest.url?.includes("/auth/login") ||
-      originalRequest.url?.includes("/auth/refresh")
+      originalRequest.url?.includes("/auth/register") ||
+      originalRequest.url?.includes("/auth/refresh") ||
+      originalRequest.url?.includes("/auth/google") ||
+      originalRequest.url?.includes("/auth/forgot-password") ||
+      originalRequest.url?.includes("/auth/reset-password")
     ) {
       return Promise.reject(error);
     }
@@ -113,7 +131,8 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+    originalRequest.headers.Authorization =
+      `Bearer ${newAccessToken}`;
 
     return api(originalRequest);
   }

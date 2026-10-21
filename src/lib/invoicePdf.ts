@@ -1,0 +1,270 @@
+
+import jsPDF from "jspdf";
+
+export interface InvoicePdfData {
+  invoiceNumber: string;
+  type: string;
+  description?: string;
+  issueDate: string;
+  dueDate?: string;
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  status: string;
+  project?: { _id?: string; name?: string } | string;
+  supplier?: { _id?: string; name?: string } | string;
+}
+
+const formatCurrency = (amount: number): string =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    minimumFractionDigits: 2,
+  }).format(amount);
+
+const formatDate = (date?: string): string => {
+  if (!date) return "Not specified";
+
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return "Not specified";
+
+  return parsed.toLocaleDateString("en-KE", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getRelatedName = (
+  value?: { _id?: string; name?: string } | string,
+): string => {
+  if (!value) return "Not specified";
+  if (typeof value === "string") return value;
+  return value.name || "Not specified";
+};
+
+export function downloadInvoicePdf(invoice: InvoicePdfData): void {
+  const pdf = new jsPDF();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 18;
+  const contentWidth = pageWidth - margin * 2;
+
+  const navy = [35, 49, 66] as const;
+  const muted = [100, 110, 120] as const;
+  const light = [242, 245, 248] as const;
+
+  // Header
+  pdf.setFillColor(...navy);
+  pdf.rect(0, 0, pageWidth, 43, "F");
+
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(21);
+  pdf.text("AESTHETICS", margin, 19);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.text("Construction Management", margin, 27);
+  pdf.text("INVOICE", pageWidth - margin, 19, { align: "right" });
+
+  pdf.setFontSize(9);
+  pdf.text(
+    `Invoice No: ${invoice.invoiceNumber}`,
+    pageWidth - margin,
+    28,
+    { align: "right" },
+  );
+
+  // Invoice information
+  let y = 56;
+
+  pdf.setTextColor(...muted);
+  pdf.setFontSize(9);
+  pdf.text("ISSUE DATE", margin, y);
+  pdf.text("DUE DATE", margin + 57, y);
+  pdf.text("STATUS", margin + 114, y);
+
+  y += 7;
+
+  pdf.setTextColor(...navy);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.text(formatDate(invoice.issueDate), margin, y);
+  pdf.text(formatDate(invoice.dueDate), margin + 57, y);
+  pdf.text(invoice.status.replaceAll("_", " ").toUpperCase(), margin + 114, y);
+
+  // Details
+  y += 16;
+
+  pdf.setFillColor(...light);
+  pdf.roundedRect(margin, y - 5, contentWidth, 37, 2, 2, "F");
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...navy);
+  pdf.text("Invoice Details", margin + 5, y + 3);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.text(`Type: ${invoice.type}`, margin + 5, y + 12);
+  pdf.text(
+    `Project: ${getRelatedName(invoice.project)}`,
+    margin + 5,
+    y + 20,
+  );
+  pdf.text(
+    `Supplier: ${getRelatedName(invoice.supplier)}`,
+    margin + 5,
+    y + 28,
+  );
+
+  // Description
+  y += 48;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.setTextColor(...navy);
+  pdf.text("Description", margin, y);
+
+  y += 7;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.setTextColor(...muted);
+
+  const description = invoice.description?.trim() || "No description provided";
+  const descriptionLines = pdf.splitTextToSize(description, contentWidth);
+  pdf.text(descriptionLines, margin, y);
+
+  y += descriptionLines.length * 5 + 9;
+
+  // Financial summary
+  const rows = [
+    ["Subtotal", formatCurrency(invoice.subtotal)],
+    ["Tax", formatCurrency(invoice.taxAmount)],
+    ["Total Amount", formatCurrency(invoice.totalAmount)],
+    ["Amount Paid", formatCurrency(invoice.amountPaid)],
+    ["Outstanding Balance", formatCurrency(invoice.amountDue)],
+  ];
+
+  const rowHeight = 11;
+
+  pdf.setFillColor(...navy);
+  pdf.rect(margin, y, contentWidth, 10, "F");
+
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text("SUMMARY", margin + 4, y + 6.5);
+  pdf.text("AMOUNT (KES)", pageWidth - margin - 4, y + 6.5, {
+    align: "right",
+  });
+
+  y += 10;
+
+  rows.forEach(([label, amount], index) => {
+    if (index % 2 === 0) {
+      pdf.setFillColor(...light);
+      pdf.rect(margin, y, contentWidth, rowHeight, "F");
+    }
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", index === 2 || index === 4 ? "bold" : "normal");
+    pdf.text(label, margin + 4, y + 7);
+    pdf.text(amount, pageWidth - margin - 4, y + 7, {
+      align: "right",
+    });
+
+    y += rowHeight;
+  });
+
+  // Footer
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  pdf.setDrawColor(220, 225, 230);
+  pdf.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setTextColor(...muted);
+  pdf.text(
+    "Generated by Aesthetics Construction Management Platform",
+    pageWidth / 2,
+    pageHeight - 17,
+    { align: "center" },
+  );
+
+  pdf.text(
+    "Please retain this document for your records.",
+    pageWidth / 2,
+    pageHeight - 11,
+    { align: "center" },
+  );
+
+  const safeInvoiceNumber = invoice.invoiceNumber.replace(
+    /[^a-zA-Z0-9-_]/g,
+    "-",
+  );
+
+  pdf.save(`Invoice-${safeInvoiceNumber}.pdf`);
+}
+
+export function printInvoice(invoice: InvoicePdfData): void {
+  const pdf = new jsPDF();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 18;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(20);
+  pdf.text("AESTHETICS", margin, 22);
+
+  pdf.setFontSize(13);
+  pdf.text("INVOICE", pageWidth - margin, 22, { align: "right" });
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+
+  let y = 38;
+
+  const lines = [
+    `Invoice Number: ${invoice.invoiceNumber}`,
+    `Type: ${invoice.type}`,
+    `Issue Date: ${formatDate(invoice.issueDate)}`,
+    `Due Date: ${formatDate(invoice.dueDate)}`,
+    `Status: ${invoice.status.replaceAll("_", " ")}`,
+    `Project: ${getRelatedName(invoice.project)}`,
+    `Supplier: ${getRelatedName(invoice.supplier)}`,
+    "",
+    `Description: ${invoice.description || "No description provided"}`,
+    "",
+    `Subtotal: ${formatCurrency(invoice.subtotal)}`,
+    `Tax: ${formatCurrency(invoice.taxAmount)}`,
+    `Total Amount: ${formatCurrency(invoice.totalAmount)}`,
+    `Amount Paid: ${formatCurrency(invoice.amountPaid)}`,
+    `Outstanding Balance: ${formatCurrency(invoice.amountDue)}`,
+  ];
+
+  for (const line of lines) {
+    const wrappedLines = pdf.splitTextToSize(
+      line,
+      pageWidth - margin * 2,
+    );
+
+    pdf.text(wrappedLines, margin, y);
+    y += wrappedLines.length * 6 + 2;
+  }
+
+  pdf.autoPrint();
+
+  const blobUrl = pdf.output("bloburl");
+  const printWindow = window.open(blobUrl, "_blank");
+
+  if (!printWindow) {
+    window.alert(
+      "The print window was blocked. Allow pop-ups for this site and try again.",
+    );
+  }
+}

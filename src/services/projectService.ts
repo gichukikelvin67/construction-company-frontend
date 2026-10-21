@@ -1,10 +1,13 @@
+
 import api from "@/lib/api";
 
 export interface CreateProjectData {
   name: string;
   location: string;
+  clientName: string;
   budget: number;
   startDate: string;
+  expectedEndDate: string;
   description: string;
 }
 
@@ -12,8 +15,10 @@ export interface Project {
   _id: string;
   name: string;
   location?: string;
+  clientName?: string;
   budget?: number;
   startDate?: string;
+  expectedEndDate?: string;
   description?: string;
   status: string;
   createdAt?: string;
@@ -32,6 +37,11 @@ interface GetProjectsResponse {
   projects: Project[];
 }
 
+interface GetProjectResponse {
+  success: boolean;
+  project: Project;
+}
+
 export const createProject = async (
   projectData: CreateProjectData
 ): Promise<Project> => {
@@ -48,10 +58,6 @@ export const getProjects = async (): Promise<Project[]> => {
 
   return response.data.projects;
 };
-interface GetProjectResponse {
-  success: boolean;
-  project: Project;
-}
 
 export const getProjectById = async (
   projectId: string
